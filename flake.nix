@@ -7,11 +7,19 @@
     self,
     poetry2nix,
   }: {
-    devShell = builtins.mapAttrs (system: poetry2nix:
-      (poetry2nix.mkPoetryEnv {
+    packages = builtins.mapAttrs (system: poetry2nix: let
+      app = poetry2nix.mkPoetryApplication {
         projectDir = ./.;
-      })
-      .env)
+      };
+    in {default = app.dependencyEnv;})
+    poetry2nix.legacyPackages;
+
+    devShell = builtins.mapAttrs (system: poetry2nix: let
+      env = poetry2nix.mkPoetryEnv {
+        projectDir = ./.;
+      };
+    in
+      env.env)
     poetry2nix.legacyPackages;
   };
 }
