@@ -75,8 +75,8 @@ class Cfserdika:
         return calendar
 
     def generate_event(self, event):
-        start = datetime.datetime.fromisoformat(event["start"]).astimezone(self.TZ)
-        end = datetime.datetime.fromisoformat(event["end"]).astimezone(self.TZ)
+        start = self.TZ.localize(datetime.datetime.fromisoformat(event["start"]))
+        end = self.TZ.localize(datetime.datetime.fromisoformat(event["end"]))
 
         e = Event(
             UID="CFSERDIKA-%d" % event["id"],
