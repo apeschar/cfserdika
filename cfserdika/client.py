@@ -83,7 +83,7 @@ class Cfserdika:
         end = self.TZ.localize(datetime.datetime.fromisoformat(event["end"]))
 
         e = Event(
-            UID="CFSERDIKA-%d" % event["id"],
+            UID="CFSERDIKA%s" % start.strftime("%Y%m%d%H%M%S"),
             DTSTAMP=vDatetime(retrieved_at),
             SUMMARY=event["title"],
             DTSTART=vDatetime(start),
