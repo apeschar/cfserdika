@@ -65,22 +65,26 @@ class Cfserdika:
         return customer_details
 
     def get_ical(self, *, start, end):
+        retrieved_at = datetime.datetime.now(pytz.utc)
+
         customer_details = self.get_authenticated_customer_details()
 
         calendar = Calendar()
 
         for event in customer_details["next_events"]:
-            calendar.add_component(self.generate_event(event))
+            calendar.add_component(
+                self.generate_event(event, retrieved_at=retrieved_at)
+            )
 
         return calendar
 
-    def generate_event(self, event):
+    def generate_event(self, event, *, retrieved_at):
         start = self.TZ.localize(datetime.datetime.fromisoformat(event["start"]))
         end = self.TZ.localize(datetime.datetime.fromisoformat(event["end"]))
 
         e = Event(
             UID="CFSERDIKA-%d" % event["id"],
-            DTSTAMP=vDatetime(start),
+            DTSTAMP=vDatetime(retrieved_at),
             SUMMARY=event["title"],
             DTSTART=vDatetime(start),
             DTEND=vDatetime(end),
