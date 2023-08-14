@@ -6,20 +6,27 @@
   outputs = {
     self,
     poetry2nix,
-  }: {
-    packages = builtins.mapAttrs (system: poetry2nix: let
-      app = poetry2nix.mkPoetryApplication {
+  }: let
+    eachSystem = f: builtins.mapAttrs (system: _: f system) poetry2nix.legacyPackages;
+  in {
+    packages = eachSystem (system: let
+      app = poetry2nix.legacyPackages.${system}.mkPoetryApplication {
         projectDir = ./.;
       };
-    in {default = app.dependencyEnv;})
-    poetry2nix.legacyPackages;
+    in {default = app.dependencyEnv;});
 
-    devShell = builtins.mapAttrs (system: poetry2nix: let
-      env = poetry2nix.mkPoetryEnv {
+    apps = eachSystem (system: {
+      default = {
+        type = "app";
+        program = "${self.packages.${system}.default}/bin/cfserdika";
+      };
+    });
+
+    devShell = eachSystem (system: let
+      env = poetry2nix.legacyPackages.${system}.mkPoetryEnv {
         projectDir = ./.;
       };
     in
-      env.env)
-    poetry2nix.legacyPackages;
+      env.env);
   };
 }
