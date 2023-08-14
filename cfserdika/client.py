@@ -29,6 +29,28 @@ class Cfserdika:
         response.raise_for_status()
         return response.json()
 
+    def get_events(self, *, start, end):
+        assert end >= start
+        response = self.session.get(
+            "https://crossfitserdika.customer.fitsys.co/calendar/get-events",
+            params={
+                "site_id": "1",
+                "instructor_id": "any",
+                "class_id": "any",
+                "class_title": "any",
+                "category_id[]": "any",
+                "resource_id": "any",
+                "event_type": "any",
+                "start": start.astimezone(self.TZ).isoformat(timespec="seconds"),
+                "end": end.astimezone(self.TZ).isoformat(timespec="seconds"),
+                "iframe": "true",
+                "triedLogin": "false",
+                "cookies_enabled": "true",
+            },
+        )
+        response.raise_for_status()
+        return response.json()
+
     def get_authenticated_customer_details(self):
         customer_details = self.get_customer_details()
 
@@ -65,13 +87,20 @@ class Cfserdika:
         return customer_details
 
     def get_ical(self, *, start, end):
+        customer_details = self.get_authenticated_customer_details()
+
         retrieved_at = datetime.datetime.now(pytz.utc)
 
-        customer_details = self.get_authenticated_customer_details()
+        events = self.get_events(
+            start=retrieved_at,
+            end=retrieved_at + datetime.timedelta(days=7),
+        )
 
         calendar = Calendar()
 
-        for event in customer_details["next_events"]:
+        for event in events["events"]:
+            if not event["participant_user_id"]:
+                continue
             calendar.add_component(
                 self.generate_event(event, retrieved_at=retrieved_at)
             )
