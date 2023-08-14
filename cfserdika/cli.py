@@ -34,3 +34,6 @@ def cmd_ical(args):
 
 
 commands = {"ical": cmd_ical}
+
+if __name__ == "__main__":
+    sys.exit(main())
