@@ -79,6 +79,10 @@
     },
     "root": {
       "inputs": {
+        "nixpkgs": [
+          "poetry2nix",
+          "nixpkgs"
+        ],
         "poetry2nix": "poetry2nix"
       }
     },

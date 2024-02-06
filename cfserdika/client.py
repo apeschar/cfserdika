@@ -1,12 +1,12 @@
 import datetime
+from zoneinfo import ZoneInfo
 
-import pytz
 import requests
 from icalendar import Alarm, Calendar, Event, vDatetime, vDuration
 
 
 class Cfserdika:
-    TZ = pytz.timezone("Europe/Sofia")
+    TZ = ZoneInfo("Europe/Sofia")
 
     def __init__(self, *, email, password):
         self.email = email
@@ -51,6 +51,50 @@ class Cfserdika:
         response.raise_for_status()
         return response.json()
 
+    def get_event_at(self, dt):
+        events = self.get_events(start=dt, end=dt + datetime.timedelta(hours=24))
+
+        for event in events["events"]:
+            start = datetime.datetime.fromisoformat(event["start"]).replace(
+                tzinfo=self.TZ
+            )
+
+            if start == dt:
+                return event
+
+        return None
+
+    def reserve(self, event):
+        self.get_authenticated_customer_details()
+
+        response = self.session.post(
+            "https://crossfitserdika.customer.fitsys.co/calendar/event/reserve",
+            json={
+                "event_id": event["id"],
+                "contact_phone": "0894033321",
+                "reservation_type": "free",
+                "reservation_text": "плащане на място",
+                "customer_note": "",
+                "mandatoryPayOnline": False,
+                "iframe": True,
+                "triedLogin": False,
+                "cookies_enabled": True,
+            },
+            headers={
+                # "Origin": "https://crossfitserdika.customer.fitsys.co",
+                # "Referer": "https://crossfitserdika.customer.fitsys.co/calendar/view_only?site_id=1",
+            },
+        )
+
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            try:
+                e = RuntimeError(response.json()["error"])
+            except:
+                pass
+            raise e
+
     def get_authenticated_customer_details(self):
         customer_details = self.get_customer_details()
 
@@ -89,7 +133,7 @@ class Cfserdika:
     def get_ical(self, *, start, end):
         customer_details = self.get_authenticated_customer_details()
 
-        retrieved_at = datetime.datetime.now(pytz.utc)
+        retrieved_at = datetime.datetime.now(datetime.timezone.utc)
 
         events = self.get_events(
             start=retrieved_at,
@@ -108,8 +152,8 @@ class Cfserdika:
         return calendar
 
     def generate_event(self, event, *, retrieved_at):
-        start = self.TZ.localize(datetime.datetime.fromisoformat(event["start"]))
-        end = self.TZ.localize(datetime.datetime.fromisoformat(event["end"]))
+        start = datetime.datetime.fromisoformat(event["start"]).replace(tzinfo=self.TZ)
+        end = datetime.datetime.fromisoformat(event["end"]).replace(tzinfo=self.TZ)
 
         e = Event(
             UID="CFSERDIKA%s" % start.strftime("%Y%m%d%H%M%S"),
