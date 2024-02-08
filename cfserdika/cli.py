@@ -75,7 +75,7 @@ def cmd_reserve(args):
 
     client = get_client()
 
-    event = client.get_event_at(reserve_at)
+    event = client.get_event_at(reserve_at, title="CrossFit")
 
     if not event:
         print("Could not find event at %s" % reserve_at.isoformat(), file=sys.stderr)

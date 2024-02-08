@@ -51,7 +51,7 @@ class Cfserdika:
         response.raise_for_status()
         return response.json()
 
-    def get_event_at(self, dt):
+    def get_event_at(self, dt, *, title):
         events = self.get_events(start=dt, end=dt + datetime.timedelta(hours=24))
 
         for event in events["events"]:
@@ -59,8 +59,13 @@ class Cfserdika:
                 tzinfo=self.TZ
             )
 
-            if start == dt:
-                return event
+            if event["title"].casefold().strip() != title.casefold().strip():
+                continue
+
+            if start != dt:
+                continue
+
+            return event
 
         return None
 
