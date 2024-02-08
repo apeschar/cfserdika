@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 from os import environ
 
 import dateparser
+import requests
 
 from cfserdika.client import Cfserdika
 
@@ -66,22 +67,48 @@ def cmd_ical(args):
 
 
 def cmd_reserve(args):
-    reserve_at = datetime.datetime.now(Cfserdika.TZ).replace(
-        hour=args.at.hour,
-        minute=args.at.minute,
-        second=args.at.second,
-        microsecond=args.at.microsecond,
-    ) + datetime.timedelta(days=args.days)
+    try:
+        reserve_at = datetime.datetime.now(Cfserdika.TZ).replace(
+            hour=args.at.hour,
+            minute=args.at.minute,
+            second=args.at.second,
+            microsecond=args.at.microsecond,
+        ) + datetime.timedelta(days=args.days)
 
-    client = get_client()
+        client = get_client()
 
-    event = client.get_event_at(reserve_at, title="CrossFit")
+        event = client.get_event_at(reserve_at, title="CrossFit")
 
-    if not event:
-        print("Could not find event at %s" % reserve_at.isoformat(), file=sys.stderr)
-        return 1
+        if not event:
+            raise RuntimeError("Could not find event at %s" % reserve_at.isoformat())
 
-    client.reserve(event)
+        client.reserve(event)
+
+        send_notification(
+            "Reserved class at %s" % reserve_at.strftime("%A %d %B at %H:%M")
+        )
+    except Exception as e:
+        notify_exception(e)
+
+        raise e
+
+
+def notify_exception(e):
+    send_notification("Could not reserve: %s" % e.args[0])
+
+
+def send_notification(message):
+    if "PUSHOVER_TOKEN" not in environ or "PUSHOVER_USER" not in environ:
+        return
+
+    requests.post(
+        "https://api.pushover.net/1/messages.json",
+        data={
+            "token": environ["PUSHOVER_TOKEN"],
+            "user": environ["PUSHOVER_USER"],
+            "message": message,
+        },
+    )
 
 
 def get_client():

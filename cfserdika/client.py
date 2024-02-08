@@ -85,10 +85,6 @@ class Cfserdika:
                 "triedLogin": False,
                 "cookies_enabled": True,
             },
-            headers={
-                # "Origin": "https://crossfitserdika.customer.fitsys.co",
-                # "Referer": "https://crossfitserdika.customer.fitsys.co/calendar/view_only?site_id=1",
-            },
         )
 
         try:
