@@ -22,6 +22,11 @@ def get_parser():
     reserve_parser.set_defaults(func=cmd_reserve)
     reserve_parser.add_argument("--at", type=datetime.time.fromisoformat, required=True)
     reserve_parser.add_argument("--days", type=int, default=7)
+    reserve_parser.add_argument(
+        "--min-date",
+        type=datetime.date.fromisoformat,
+        default=datetime.date.today(),
+    )
 
     return parser
 
@@ -74,6 +79,14 @@ def cmd_reserve(args):
             second=args.at.second,
             microsecond=args.at.microsecond,
         ) + datetime.timedelta(days=args.days)
+
+        if reserve_at.date() < args.min_date:
+            print(
+                "Intended booking at %s is before minimum date %s"
+                % (reserve_at.isoformat(), args.min_date.isoformat()),
+                file=sys.stderr,
+            )
+            return
 
         client = get_client()
 
