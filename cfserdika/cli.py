@@ -1,12 +1,15 @@
 import datetime
+import logging
 import sys
+import time
 from argparse import ArgumentParser
 from os import environ
 
-import dateparser
 import requests
 
 from cfserdika.client import Cfserdika
+
+logger = logging.getLogger(__name__)
 
 
 def get_parser():
@@ -32,6 +35,8 @@ def get_parser():
 
 
 def main():
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.INFO)
     args = get_parser().parse_args()
     if args.debug:
         enable_logging()
@@ -39,10 +44,6 @@ def main():
 
 
 def enable_logging():
-    import logging
-
-    import requests
-
     # These two lines enable debugging at httplib level (requests->urllib3->http.client)
     # You will see the REQUEST, including HEADERS and DATA, and RESPONSE with HEADERS but without DATA.
     # The only thing missing will be the response.body which is not logged.
@@ -54,7 +55,6 @@ def enable_logging():
     http_client.HTTPConnection.debuglevel = 1
 
     # You must initialize logging, otherwise you'll not see debug output.
-    logging.basicConfig()
     logging.getLogger().setLevel(logging.DEBUG)
     requests_log = logging.getLogger("requests.packages.urllib3")
     requests_log.setLevel(logging.DEBUG)
@@ -90,10 +90,7 @@ def cmd_reserve(args):
 
         client = get_client()
 
-        event = client.get_event_at(reserve_at, title="CrossFit")
-
-        if not event:
-            raise RuntimeError("Could not find event at %s" % reserve_at.isoformat())
+        event = find_event(client, reserve_at)
 
         client.reserve(event)
 
@@ -104,6 +101,27 @@ def cmd_reserve(args):
         notify_exception(e)
 
         raise e
+
+
+def find_event(client, reserve_at):
+    tries = 15
+
+    for i in range(15):
+        event = client.get_event_at(reserve_at, title="CrossFit")
+
+        if event:
+            return event
+
+        tries -= 1
+        if tries <= 0:
+            raise RuntimeError("Could not find event at %s" % reserve_at.isoformat())
+
+        logger.info(
+            "Could not find event at %s; retrying after 1 minute",
+            reserve_at.isoformat(),
+        )
+
+        time.sleep(60)
 
 
 def notify_exception(e):
